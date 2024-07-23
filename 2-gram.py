@@ -105,15 +105,16 @@ generator = torch.Generator().manual_seed(2147483647)
 
 # P = N.float() / N.sum(dim=1,keepdim=True)
 #inplace operation is slightly faster as it does not create new memory
-P = N.float()
+# +1 because of model smoothing! 
+# otherwise we might have a zero probability in P which results in -inf log likelihood!!
+P = (N+1).float()
 P /= P.sum(dim=1,keepdim=True)
 
 #we can check if this is properly done by summing the rows
-print(P[0].sum())
+print(P[0],P[0].sum())
 #and show that the cols are not adding up to 1
 print(P[:, 0].sum())
 #which is exactly what is correct. if we discard keepdim it will be reversed because of broadcasting
-
 
 for i in range(10):
     out = []
@@ -133,7 +134,10 @@ for i in range(10):
 log_likelihood = 0.0
 n=0
 
+#we can evaluate that for any word 
+# for w in ["simon"]:
 for w in words[:1]:
+# for w in words:
     #introduce special start and end
     # chrs = ["<S>"] + list(w) + ["<E>"]
     chrs = ["."] + list(w) + ["."]
@@ -155,9 +159,30 @@ log_likelihood
 nll = -log_likelihood
 #we like to normalize the nll 
 nll /= n
-print(f"{nll=}")
+print(f"average negative log likelihood: {nll=}. we want to drive this to 0 by optimizing for the right parameters w.")
+#we want to minimize the nll on our model (as we want to maximize likelihood)
 #%%
 
-#so now we want to minimize the nll on our model
+# Neural Network approach:
 
+# create training set of bigram (x,y)
+# we are given the first character and we are trying to predict the next one of the two.
+xs, ys = [], []
+
+
+
+words = open('data/train.txt', 'r').read().splitlines()
+for w in words[:1]:
+    chrs = ["."] + list(w) + ["."]
+    for c1,c2 in zip(chrs, chrs[1:]):
+        ix1 = stoi[c1]
+        ix2 = stoi[c2]
+        print(f"{c1}{c2}")
+        xs.append(ix1)
+        ys.append(ix2)
+
+xs = torch.tensor(xs)
+ys = torch.tensor(ys)
+
+xs,ys
 
